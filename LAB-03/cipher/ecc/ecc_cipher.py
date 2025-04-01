@@ -1,5 +1,7 @@
-import ecdsa, os
+import ecdsa
+import os
 
+# Tạo thư mục chứa khóa nếu chưa tồn tại
 if not os.path.exists('cipher/ecc/keys'):
     os.makedirs('cipher/ecc/keys')
 
@@ -8,22 +10,27 @@ class ECCCipher:
         pass
 
     def generate_keys(self):
+        # Tạo khóa riêng tư
         sk = ecdsa.SigningKey.generate()  # Tạo khóa riêng tư
-        vk = sk.get_verifying_key()      # Lấy khóa công khai từ khóa riêng tư
-        
+        vk = sk.get_verifying_key()  # Lấy khóa công khai từ khóa riêng tư
+
+        # Lưu khóa riêng tư vào file
         with open('cipher/ecc/keys/privateKey.pem', 'wb') as p:
             p.write(sk.to_pem())
-        
+
+        # Lưu khóa công khai vào file
         with open('cipher/ecc/keys/publicKey.pem', 'wb') as p:
             p.write(vk.to_pem())
 
     def load_keys(self):
+        # Đọc khóa riêng tư từ file
         with open('cipher/ecc/keys/privateKey.pem', 'rb') as p:
             sk = ecdsa.SigningKey.from_pem(p.read())
-        
+
+        # Đọc khóa công khai từ file
         with open('cipher/ecc/keys/publicKey.pem', 'rb') as p:
             vk = ecdsa.VerifyingKey.from_pem(p.read())
-        
+
         return sk, vk
 
     def sign(self, message, key):
@@ -31,25 +38,9 @@ class ECCCipher:
         return key.sign(message.encode('ascii'))
 
     def verify(self, message, signature, key):
+        # Xác thực chữ ký bằng khóa công khai
+        _, vk = self.load_keys()
         try:
-            return key.verify(signature, message.encode('ascii'))
+            return vk.verify(signature, message.encode('ascii'))
         except ecdsa.BadSignatureError:
             return False
-
-# Nếu bạn muốn kiểm thử nhanh:
-if __name__ == "__main__":
-    ecc = ECCCipher()
-    ecc.generate_keys()
-    sk, vk = ecc.load_keys()
-
-    msg = "Hello, ECC!"
-    signature = ecc.sign(msg, sk)
-    
-    is_verified = ecc.verify(msg, signature, vk)
-    print("Chữ ký hợp lệ:" if is_verified else "Chữ ký không hợp lệ")
-
-    # Thử với thông điệp khác
-    is_verified_fake = ecc.verify("Fake Message", signature, vk)
-    print("Chữ ký hợp lệ với thông điệp giả mạo:" if is_verified_fake else "Chữ ký không hợp lệ với thông điệp giả mạo")
-
-# Nếu có gì cần cải tiến, cứ thoải mái nói nhé! 🚀
